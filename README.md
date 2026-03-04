@@ -119,6 +119,7 @@ Stored in `monthly_summaries` table.
 
 # 📂 Project Structure
 
+```
 wealthlens/
 │
 ├── backend/
@@ -138,6 +139,8 @@ wealthlens/
 │
 ├── .gitignore
 └── README.md
+
+```
 
 ---
 
