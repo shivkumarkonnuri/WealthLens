@@ -20,8 +20,6 @@ def call_llm(signal_payload: dict):
 
     load_dotenv()
 
-
-
     OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
     OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL")
 
@@ -197,25 +195,112 @@ def generate_ai_insight(month: str, db: Session):
         }
     }
 
-    # ------------------------------------------------------
+        # ------------------------------------------------------
     # Call LLM for Explanation
     # ------------------------------------------------------
 
     try:
         llm_text = call_llm(signal_payload)
+
+        if not llm_text:
+            raise ValueError("Empty LLM response")
+
+        llm_text = llm_text.strip()
+
+        # ------------------------------------------
+        # Remove markdown blocks if present
+        # ------------------------------------------
+        if "```" in llm_text:
+            llm_text = llm_text.replace("```json", "").replace("```", "").strip()
+
+        # ------------------------------------------
+        # Extract JSON portion
+        # ------------------------------------------
+        start = llm_text.find("{")
+
+        if start == -1:
+            raise ValueError("No JSON object found")
+
+        llm_text = llm_text[start:]
+
+        # ------------------------------------------
+        # Fix truncated JSON
+        # ------------------------------------------
+
+        open_braces = llm_text.count("{")
+        close_braces = llm_text.count("}")
+
+        open_brackets = llm_text.count("[")
+        close_brackets = llm_text.count("]")
+
+        if close_brackets < open_brackets:
+            llm_text += "]" * (open_brackets - close_brackets)
+
+        if close_braces < open_braces:
+            llm_text += "}" * (open_braces - close_braces)
+
+        # ------------------------------------------
+        # Remove trailing commas
+        # ------------------------------------------
+        llm_text = llm_text.replace(",}", "}").replace(",]", "]")
+
+        # ------------------------------------------
+        # Parse JSON
+        # ------------------------------------------
         llm_json = json.loads(llm_text)
-        summary_text = llm_json.get("summary", "")
-        suggestions = llm_json.get("actionable_suggestions", [])
-    except Exception:
+
+        summary_text = str(llm_json.get("summary", "")).strip()
+
+        suggestions = (
+            llm_json.get("actionable_suggestions")
+            or llm_json.get("suggestions")
+            or []
+        )
+
+        normalized_suggestions = []
+
+        for s in suggestions:
+
+            if isinstance(s, dict):
+
+                text = (
+                    s.get("description")
+                    or s.get("reason")
+                    or s.get("action")
+                    or str(s)
+                )
+
+                normalized_suggestions.append(text)
+
+            elif isinstance(s, str):
+
+                normalized_suggestions.append(s)
+
+            else:
+
+                normalized_suggestions.append(str(s))
+
+        suggestions = normalized_suggestions
+
+    except Exception as e:
+
+        print("AI PARSE ERROR:", e)
+        print("RAW LLM RESPONSE:", llm_text)
+
         summary_text = "AI explanation generation failed."
+
         suggestions = [
             "Review spending patterns.",
             "Monitor recurring subscriptions.",
             "Build emergency savings."
         ]
 
+    # ------------------------------------------
     # Ensure exactly 3 suggestions
+    # ------------------------------------------
+
     suggestions = suggestions[:3]
+
     while len(suggestions) < 3:
         suggestions.append("Review recurring subscriptions for optimization.")
 

@@ -143,7 +143,6 @@ def upload_csv(
 
     db.commit()
 
-    # Fully automated pipeline: Summary + AI
     for month in months_to_update:
         background_tasks.add_task(
             generate_summary_and_ai,
@@ -163,11 +162,6 @@ def upload_csv(
 # ==================================================
 @router.post("/generate-summary/{month}")
 def generate_summary(month: str, db: Session = Depends(get_db)):
-    """
-    Generate monthly summary manually.
-    Format: YYYY-MM
-    Example: 2026-06
-    """
     result = generate_monthly_summary(month, db)
     return result
 
@@ -177,24 +171,15 @@ def generate_summary(month: str, db: Session = Depends(get_db)):
 # ==================================================
 @router.post("/generate-ai/{month}")
 def generate_ai(month: str, db: Session = Depends(get_db)):
-    """
-    Generate AI insight manually.
-    Format: YYYY-MM
-    Example: 2026-06
-    """
     result = generate_ai_insight(month, db)
     return result
 
 
 # ==================================================
-# Backfill Missing Categories (Production Migration Tool)
+# Backfill Missing Categories
 # ==================================================
 @router.post("/backfill-categories")
 def backfill_categories(db: Session = Depends(get_db)):
-    """
-    One-time tool to categorize older transactions
-    where final_category is NULL.
-    """
 
     transactions = db.query(Transaction).filter(
         Transaction.final_category == None
@@ -218,3 +203,24 @@ def backfill_categories(db: Session = Depends(get_db)):
         "message": "Backfill completed successfully",
         "records_updated": updated_count,
     }
+
+
+# ==================================================
+# Get Available Months (Latest 12 Months)
+# ==================================================
+from sqlalchemy import func
+
+@router.get("/available-months")
+def get_available_months(db: Session = Depends(get_db)):
+
+    months = (
+        db.query(
+            func.to_char(Transaction.transaction_date, "YYYY-MM").label("month")
+        )
+        .distinct()
+        .order_by(func.to_char(Transaction.transaction_date, "YYYY-MM").desc())
+        .limit(12)
+        .all()
+    )
+
+    return [m.month for m in months]
