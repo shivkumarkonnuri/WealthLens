@@ -139,7 +139,6 @@ wealthlens/
 ├── .gitignore
 └── README.md
 
-
 ---
 
 # 🔄 API Endpoints
@@ -155,7 +154,6 @@ POST /transactions/generate-summary/{month}
 POST /transactions/generate-ai/{month}
 
 ---
-
 
 ---
 
@@ -221,13 +219,11 @@ Shivkumar Konnuri
 
 # 📌 Status
 
-✔ Backend Functional
-✔ Deterministic Risk Engine
-✔ AI Explanation Layer
-✔ Behavioral Detection
-✔ Monthly Comparison
-✔ Dashboard Connected
+✔ Backend Functional  
+✔ Deterministic Risk Engine  
+✔ AI Explanation Layer  
+✔ Behavioral Detection  
+✔ Monthly Comparison  
+✔ Dashboard Connected  
 
 WealthLens is under active development.
-
----
