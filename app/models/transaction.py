@@ -1,7 +1,6 @@
 import uuid
-from sqlalchemy import Column, String, Float, Date, DateTime
+from sqlalchemy import Column, String, Numeric, Date, DateTime, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
-from datetime import datetime
 
 from app.database.session import Base
 
@@ -11,8 +10,11 @@ class Transaction(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
 
+    # Auth: every transaction belongs to a user
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+
     transaction_date = Column(Date, nullable=False)
-    amount = Column(Float, nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)  # Numeric for financial precision
     description = Column(String, nullable=True)
     merchant_name = Column(String, nullable=True)
     transaction_type = Column(String, nullable=False)  # debit / credit
@@ -22,4 +24,4 @@ class Transaction(Base):
     user_category = Column(String, nullable=True)
     final_category = Column(String, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
