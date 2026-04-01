@@ -1,28 +1,27 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from typing import Generator
+from dotenv import load_dotenv
 
-# PostgreSQL connection string
-DATABASE_URL = "postgresql://wealthuser:wealthpass@localhost:5432/wealthlensdb"
+load_dotenv()
 
-# Create SQLAlchemy engine
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://wealthuser:wealthpass@localhost:5432/wealthlensdb"
+)
+
 engine = create_engine(
     DATABASE_URL,
-    echo=True  # Shows SQL queries in terminal (good for development)
+    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10,
 )
 
-# Create Session factory
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
-
-# Base class for models
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-
-# Dependency for FastAPI routes
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
