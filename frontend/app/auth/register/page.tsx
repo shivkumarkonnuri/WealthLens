@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+<<<<<<< HEAD
 import { useRouter } from "next/navigation";
 import { register, login } from "@/lib/auth";
+=======
+import { register, login, verifyToken, redirectTo } from "@/lib/auth";
+>>>>>>> 4e96856 (Fixed and stable code)
 
 export default function RegisterPage() {
-  const router = useRouter();
   const checked = useRef(false);
 
   const [fullName, setFullName]       = useState("");
@@ -20,6 +23,7 @@ export default function RegisterPage() {
     if (checked.current) return;
     checked.current = true;
 
+<<<<<<< HEAD
     const token = typeof window !== "undefined"
       ? localStorage.getItem("wl_token")
       : null;
@@ -29,6 +33,15 @@ export default function RegisterPage() {
     } else {
       setAuthChecked(true);
     }
+=======
+    verifyToken().then((user) => {
+      if (user) {
+        redirectTo("/");
+      } else {
+        setAuthChecked(true);
+      }
+    });
+>>>>>>> 4e96856 (Fixed and stable code)
   }, []);
 
   if (!authChecked) return null;
@@ -40,6 +53,7 @@ export default function RegisterPage() {
     if (password !== confirm) return setError("Passwords do not match.");
 
     setLoading(true);
+<<<<<<< HEAD
 
     const reg = await register(email, password, fullName);
     if (!reg.ok) {
@@ -51,6 +65,12 @@ export default function RegisterPage() {
     const log = await login(email, password);
     if (log.ok) router.replace("/");
     else router.replace("/auth/login");
+=======
+    const regResult = await register(email, password, fullName);
+    if (!regResult.ok) { setError(regResult.error ?? "Registration failed."); setLoading(false); return; }
+    const loginResult = await login(email, password);
+    redirectTo(loginResult.ok ? "/" : "/auth/login");
+>>>>>>> 4e96856 (Fixed and stable code)
   }
 
   return (

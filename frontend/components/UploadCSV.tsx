@@ -3,8 +3,6 @@
 import { useState, useRef, DragEvent } from "react";
 import { apiFetch } from "@/lib/auth";
 
-const BASE_URL = "http://127.0.0.1:8000";
-
 interface UploadResult {
   rows_inserted: number;
   rows_skipped: number;
@@ -13,12 +11,38 @@ interface UploadResult {
 }
 interface Props { onSuccess?: () => void; }
 
+// Safely extract a human-readable error message from any backend response.
+// FastAPI 422 responses return detail as an array of validation error objects,
+// not a string — passing that directly to React causes "objects are not valid
+// as a React child" (error #31).
+function extractError(data: unknown): string {
+  if (!data || typeof data !== "object") return "Upload failed.";
+  const d = data as Record<string, unknown>;
+  if (!d.detail) return "Upload failed.";
+  if (typeof d.detail === "string") return d.detail;
+  // FastAPI 422 — detail is an array of {loc, msg, type, input}
+  if (Array.isArray(d.detail)) {
+    return d.detail
+      .map((e: unknown) => {
+        if (e && typeof e === "object") {
+          const err = e as Record<string, unknown>;
+          const loc = Array.isArray(err.loc) ? err.loc.join(" → ") : "";
+          const msg = typeof err.msg === "string" ? err.msg : "";
+          return loc ? `${loc}: ${msg}` : msg;
+        }
+        return String(e);
+      })
+      .join("; ");
+  }
+  return JSON.stringify(d.detail);
+}
+
 export default function UploadCSV({ onSuccess }: Props) {
-  const [file, setFile]         = useState<File | null>(null);
+  const [file, setFile]           = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [result, setResult]     = useState<UploadResult | null>(null);
-  const [error, setError]       = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
+  const [result, setResult]       = useState<UploadResult | null>(null);
+  const [error, setError]         = useState<string | null>(null);
+  const [dragging, setDragging]   = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (f: File | null) => {
@@ -38,18 +62,24 @@ export default function UploadCSV({ onSuccess }: Props) {
     const fd = new FormData();
     fd.append("file", file);
     try {
-      // apiFetch automatically attaches the Authorization header
-      const res = await apiFetch(`${BASE_URL}/transactions/upload-csv`, { method: "POST", body: fd });
+      // apiFetch attaches the Authorization header.
+      // Do NOT set Content-Type manually — the browser must set it with
+      // the correct multipart boundary for the file upload to work.
+      const res = await apiFetch("/api/proxy/transactions/upload-csv", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) { setError(data.detail || "Upload failed."); }
-      else {
+      if (!res.ok) {
+        setError(extractError(data));
+      } else {
         setResult(data);
         setFile(null);
         if (inputRef.current) inputRef.current.value = "";
         onSuccess?.();
       }
-    } catch { setError("Network error — could not reach the backend."); }
-    finally { setUploading(false); }
+    } catch {
+      setError("Network error — could not reach the backend.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -60,6 +90,9 @@ export default function UploadCSV({ onSuccess }: Props) {
     }}>
       <p style={{ fontSize:10, fontWeight:600, letterSpacing:".1em", textTransform:"uppercase", color:"var(--text-muted)", marginBottom:10 }}>
         Upload Transactions
+      </p>
+      <p style={{ fontSize:11, color:"var(--text-muted)", marginBottom:10 }}>
+        Required columns: <span style={{ color:"var(--text-secondary)", fontFamily:"var(--font-mono)" }}>transaction_date, amount, description, merchant_name, transaction_type, currency</span>
       </p>
       <div
         onDragOver={e=>{ e.preventDefault(); setDragging(true); }}
@@ -82,7 +115,7 @@ export default function UploadCSV({ onSuccess }: Props) {
               {file ? file.name : "Drop a CSV file or click to browse"}
             </p>
             <p style={{ fontSize:11, color:"var(--text-muted)", margin:0 }}>
-              {file ? `${(file.size/1024).toFixed(1)} KB` : "Required: transaction_date, amount, merchant_name, transaction_type, currency"}
+              {file ? `${(file.size/1024).toFixed(1)} KB` : "transaction_date: YYYY-MM-DD · amount: positive number · transaction_type: debit/credit"}
             </p>
           </div>
         </div>
@@ -117,6 +150,13 @@ export default function UploadCSV({ onSuccess }: Props) {
             <span style={{ fontSize:12, padding:"3px 10px", borderRadius:999, background:"rgba(34,211,238,.08)", color:"#22d3ee", border:"1px solid rgba(34,211,238,.2)" }}>
               ◈ Processing {result.automation_triggered_for.join(", ")}
             </span>
+          ) : null}
+          {result.skipped_errors?.length ? (
+            <div style={{ width:"100%", marginTop:6 }}>
+              {result.skipped_errors.map((e, i) => (
+                <p key={i} style={{ fontSize:11, color:"var(--amber)", margin:"2px 0" }}>⚠ {e}</p>
+              ))}
+            </div>
           ) : null}
         </div>
       )}

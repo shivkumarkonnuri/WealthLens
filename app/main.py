@@ -1,4 +1,5 @@
 import logging
+import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -17,12 +18,24 @@ app = FastAPI(
     version="3.0.0",
 )
 
+# Build CORS origins list.
+# The frontend Next.js container proxies all API calls server-side
+# (http://backend:8000 via Docker network), so the browser never talks
+# directly to port 8000. However CORS must still cover the frontend origin
+# in case any direct browser→backend call slips through.
+_cors_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+# Allow overriding via env var for EC2 / custom domains:
+# CORS_ORIGINS=http://1.2.3.4:3000,https://yourdomain.com
+_extra = os.getenv("CORS_ORIGINS", "")
+if _extra:
+    _cors_origins.extend([o.strip() for o in _extra.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

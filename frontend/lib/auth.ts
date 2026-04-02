@@ -45,10 +45,49 @@ export function setCachedUser(user: AuthUser): void {
   localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
-// ── Auth state ────────────────────────────────────────────────
+// ── Auth state (localStorage only — does NOT verify with backend) ──
+// A token present in localStorage may be expired. Use verifyToken()
+// when you need a guaranteed-valid session check.
 export function isLoggedIn(): boolean {
   if (typeof window === "undefined") return false;
   return !!getToken();
+}
+
+// ── Verify token with backend ─────────────────────────────────
+// Calls /api/proxy/auth/me. Returns the user if token is valid,
+// null if expired/invalid (and clears the stale token automatically).
+export async function verifyToken(): Promise<AuthUser | null> {
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const res = await fetch("/api/proxy/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      const user: AuthUser = await res.json();
+      setCachedUser(user);
+      return user;
+    }
+
+    // Token is expired or invalid — wipe it so isLoggedIn() won't
+    // mislead future checks (this is what caused the redirect loop).
+    clearToken();
+    return null;
+  } catch {
+    // Network error — don't clear token, let the user retry
+    return null;
+  }
+}
+
+// ── Hard redirect ─────────────────────────────────────────────
+// Always use this instead of router.replace(). Next.js router.replace()
+// is non-blocking — two pages pointing at each other will loop forever.
+// window.location.replace() is a true browser navigation that tears
+// down the current page before loading the next one.
+export function redirectTo(path: string): void {
+  window.location.replace(path);
 }
 
 // ── Authenticated fetch wrapper ───────────────────────────────
@@ -58,11 +97,7 @@ export async function apiFetch(
 ): Promise<Response> {
   const token = getToken();
   const headers = new Headers(init.headers ?? {});
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
+  if (token) headers.set("Authorization", `Bearer ${token}`);
   return fetch(input, { ...init, headers });
 }
 
@@ -118,6 +153,11 @@ export async function login(
 export async function logout(): Promise<void> {
   try {
     await apiFetch(`/api/proxy/auth/logout`, { method: "POST" });
+<<<<<<< HEAD
+=======
+  } catch {
+    // Ignore network errors — still clear locally
+>>>>>>> 4e96856 (Fixed and stable code)
   } finally {
     clearToken();
   }
