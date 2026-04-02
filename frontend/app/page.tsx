@@ -228,6 +228,7 @@ export default function Home() {
   const router = useRouter();
 
   const [user, setUser]                       = useState<AuthUser | null>(null);
+  const [authChecked, setAuthChecked]         = useState(false);
   const [selectedMonth, setSelectedMonth]     = useState("");
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [summary, setSummary]                 = useState<Summary | null>(null);
@@ -244,6 +245,7 @@ export default function Home() {
       return;
     }
     setUser(getCachedUser());
+    setAuthChecked(true);
   }, [router]);
 
   const fetchMonths = useCallback(async () => {
@@ -261,7 +263,7 @@ export default function Home() {
     }
   }, [router]);
 
-  useEffect(() => { if (isLoggedIn()) fetchMonths(); }, [fetchMonths]);
+  useEffect(() => { if (authChecked) fetchMonths(); }, [authChecked, fetchMonths]);
 
   useEffect(() => {
     if (!selectedMonth) return;
@@ -293,6 +295,10 @@ export default function Home() {
   }
 
   const onUploadSuccess = () => { fetchMonths(); };
+
+  // Don't render anything until auth check is complete — prevents dashboard flash
+  if (!authChecked) return null;
+
   const savings = summary ? summary.total_income - summary.total_expense : 0;
   const expPct  = summary && summary.total_income > 0 ? (summary.total_expense / summary.total_income)*100 : 0;
 
