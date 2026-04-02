@@ -7,15 +7,23 @@ import { login, isLoggedIn } from "@/lib/auth";
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError]       = useState<string | null>(null);
-  const [loading, setLoading]   = useState(false);
+  const [email, setEmail]             = useState("");
+  const [password, setPassword]       = useState("");
+  const [error, setError]             = useState<string | null>(null);
+  const [loading, setLoading]         = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Already logged in → go straight to dashboard
   useEffect(() => {
-    if (isLoggedIn()) router.replace("/");
+    if (isLoggedIn()) {
+      router.replace("/");
+    } else {
+      setAuthChecked(true); // only show login page once confirmed NOT logged in
+    }
   }, [router]);
+
+  // Don't render until auth check complete — prevents flash
+  if (!authChecked) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,7 +42,6 @@ export default function LoginPage() {
 
   return (
     <div style={styles.page}>
-      {/* Logo / brand */}
       <div style={styles.brand}>
         <span style={styles.brandIcon}>◈</span>
         <span style={styles.brandName}>WealthLens</span>
@@ -68,6 +75,7 @@ export default function LoginPage() {
               onChange={e => setPassword(e.target.value)}
               style={styles.input}
               placeholder="••••••••"
+              maxLength={72}
             />
           </label>
 
@@ -97,7 +105,6 @@ export default function LoginPage() {
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
@@ -114,10 +121,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
     marginBottom: 32,
   },
-  brandIcon: {
-    fontSize: 26,
-    color: "var(--accent)",
-  },
+  brandIcon: { fontSize: 26, color: "var(--accent)" },
   brandName: {
     fontSize: 22,
     fontWeight: 600,
@@ -132,22 +136,9 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     padding: "36px 32px",
   },
-  heading: {
-    fontSize: 22,
-    fontWeight: 600,
-    color: "var(--text-primary)",
-    margin: "0 0 6px",
-  },
-  sub: {
-    fontSize: 13,
-    color: "var(--text-muted)",
-    margin: "0 0 28px",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-  },
+  heading: { fontSize: 22, fontWeight: 600, color: "var(--text-primary)", margin: "0 0 6px" },
+  sub: { fontSize: 13, color: "var(--text-muted)", margin: "0 0 28px" },
+  form: { display: "flex", flexDirection: "column", gap: 16 },
   label: {
     display: "flex",
     flexDirection: "column",
@@ -192,15 +183,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "var(--font-sans)",
     transition: "background .2s",
   },
-  footer: {
-    marginTop: 24,
-    textAlign: "center",
-    fontSize: 13,
-    color: "var(--text-muted)",
-  },
-  link: {
-    color: "var(--accent)",
-    textDecoration: "none",
-    fontWeight: 500,
-  },
+  footer: { marginTop: 24, textAlign: "center", fontSize: 13, color: "var(--text-muted)" },
+  link: { color: "var(--accent)", textDecoration: "none", fontWeight: 500 },
 };
