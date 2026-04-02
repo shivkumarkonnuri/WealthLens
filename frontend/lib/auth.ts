@@ -118,8 +118,6 @@ export async function login(
 export async function logout(): Promise<void> {
   try {
     await apiFetch(`/api/proxy/auth/logout`, { method: "POST" });
-  } catch {
-    // Ignore network errors on logout
   } finally {
     clearToken();
   }
