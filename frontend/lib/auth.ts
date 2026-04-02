@@ -74,7 +74,7 @@ export async function register(
   full_name: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch(`${BASE_URL}/auth/register`, {
+    const res = await fetch(`/api/proxy/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, full_name }),
@@ -93,7 +93,7 @@ export async function login(
   password: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch(`${BASE_URL}/auth/login`, {
+    const res = await fetch(`/api/proxy/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -104,7 +104,7 @@ export async function login(
     setToken(data.access_token);
 
     // Fetch and cache the user profile immediately after login
-    const meRes = await apiFetch(`${BASE_URL}/auth/me`);
+    const meRes = await apiFetch(`/api/proxy/auth/me`);
     if (meRes.ok) {
       const user = await meRes.json();
       setCachedUser(user);
@@ -119,7 +119,7 @@ export async function login(
 // ── Logout ────────────────────────────────────────────────────
 export async function logout(): Promise<void> {
   try {
-    await apiFetch(`${BASE_URL}/auth/logout`, { method: "POST" });
+    await apiFetch(`/api/proxy/auth/logout`, { method: "POST" });
   } catch {
     // Ignore network errors on logout — still clear locally
   } finally {
@@ -128,4 +128,3 @@ export async function logout(): Promise<void> {
 }
 
 // ── Base URL (matches existing frontend convention) ───────────
-export const BASE_URL = "http://127.0.0.1:8000";

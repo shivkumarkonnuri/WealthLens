@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import UploadCSV from "@/components/UploadCSV";
 import { apiFetch, logout, getCachedUser, isLoggedIn, type AuthUser } from "@/lib/auth";
 
-const BASE_URL = "http://127.0.0.1:8000";
 
 interface Summary {
   total_income: number;
@@ -249,7 +248,7 @@ export default function Home() {
 
   const fetchMonths = useCallback(async () => {
     try {
-      const res = await apiFetch(`${BASE_URL}/transactions/available-months`);
+      const res = await apiFetch(`/api/proxy/transactions/available-months`);
       if (res.status === 401) { router.replace("/auth/login"); return; }
       if (!res.ok) throw new Error("Failed");
       const data: string[] = await res.json();
@@ -271,8 +270,8 @@ export default function Home() {
       setLoading(true); setError(null); setNoData(false);
       try {
         const [sRes, aRes] = await Promise.all([
-          apiFetch(`${BASE_URL}/transactions/generate-summary/${selectedMonth}`, { method:"POST", signal:controller.signal }),
-          apiFetch(`${BASE_URL}/transactions/generate-ai/${selectedMonth}`,      { method:"POST", signal:controller.signal }),
+          apiFetch(`/api/proxy/transactions/generate-summary/${selectedMonth}`, { method:"POST", signal:controller.signal }),
+          apiFetch(`/api/proxy/transactions/generate-ai/${selectedMonth}`,      { method:"POST", signal:controller.signal }),
         ]);
         if (sRes.status === 401 || aRes.status === 401) { router.replace("/auth/login"); return; }
         if (!sRes.ok || !aRes.ok) throw new Error("API error");

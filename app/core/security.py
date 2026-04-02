@@ -1,7 +1,6 @@
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
@@ -10,16 +9,15 @@ from passlib.context import CryptContext
 # ---------------------------------------------------------------------------
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
 def hash_password(plain: str) -> str:
     """Hash a plain-text password with bcrypt."""
+    plain = plain[:72]  # bcrypt has a 72-byte limit
     return pwd_context.hash(plain)
-
 
 def verify_password(plain: str, hashed: str) -> bool:
     """Return True if plain matches the bcrypt hash."""
+    plain = plain[:72]  # must truncate here too to match
     return pwd_context.verify(plain, hashed)
-
 
 # ---------------------------------------------------------------------------
 # JWT settings — loaded from environment
@@ -27,7 +25,6 @@ def verify_password(plain: str, hashed: str) -> bool:
 SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "change-me-in-production-use-a-long-random-string")
 ALGORITHM: str = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
-
 
 def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
     """
@@ -39,7 +36,6 @@ def create_access_token(subject: str, expires_delta: Optional[timedelta] = None)
     )
     payload = {"sub": subject, "exp": expire}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
 
 def decode_access_token(token: str) -> Optional[str]:
     """

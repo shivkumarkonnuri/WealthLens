@@ -11,11 +11,11 @@ COPY app/requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY /app .
+COPY /app ./app/
 
-COPY alembic/ ../alembic/
+COPY alembic/ ./alembic/
 
-COPY alembic.ini ../alembic.ini
+COPY alembic.ini .
 
 EXPOSE 8000
 
