@@ -1,6 +1,8 @@
 // =============================================================
 // WealthLens — Auth utilities
 // Token is stored in localStorage under "wl_token".
+// Every API call should use apiFetch() so the token is always
+// attached automatically.
 // =============================================================
 
 const TOKEN_KEY = "wl_token";
@@ -16,7 +18,7 @@ export interface AuthUser {
 // ── Token helpers ─────────────────────────────────────────────
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY); // ✅ FIX: removed duplicate check
+  return localStorage.getItem(TOKEN_KEY); // FIX: removed duplicate check
 }
 
 export function setToken(token: string): void {
@@ -45,7 +47,7 @@ export function setCachedUser(user: AuthUser): void {
 
 // ── Auth state ────────────────────────────────────────────────
 export function isLoggedIn(): boolean {
-  if (typeof window === "undefined") return false; // ✅ FIX
+  if (typeof window === "undefined") return false; // FIX: SSR safety
   return !!getToken();
 }
 
@@ -100,6 +102,7 @@ export async function login(
 
     setToken(data.access_token);
 
+    // Fetch and cache the user profile immediately after login
     const meRes = await apiFetch(`/api/proxy/auth/me`);
     if (meRes.ok) {
       const user = await meRes.json();
@@ -117,7 +120,7 @@ export async function logout(): Promise<void> {
   try {
     await apiFetch(`/api/proxy/auth/logout`, { method: "POST" });
   } catch {
-    // ignore
+    // Ignore network errors on logout — still clear locally
   } finally {
     clearToken();
   }
