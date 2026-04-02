@@ -39,7 +39,6 @@ const CAT_COLORS: Record<string, string> = {
   Transfer:"#94a3b8", Income:"#10b981", Uncategorized:"#334155",
 };
 
-// ── Animated counter ──────────────────────────────────────────
 function AnimatedNum({ value }: { value: number }) {
   const [disp, setDisp] = useState(0);
   const raf = useRef<number | null>(null);
@@ -58,7 +57,6 @@ function AnimatedNum({ value }: { value: number }) {
   return <>{fmt(disp)}</>;
 }
 
-// ── Skeleton ──────────────────────────────────────────────────
 function Skeleton() {
   const skRow = { background: "linear-gradient(90deg,#111827 25%,#161f35 50%,#111827 75%)", backgroundSize:"200% 100%", animation:"shimmer 1.5s infinite", borderRadius:6, marginBottom:10 };
   return (
@@ -81,24 +79,16 @@ function Skeleton() {
   );
 }
 
-// ── Stat Card ─────────────────────────────────────────────────
-function StatCard({ title, value, sub, color, icon, pct }: {
-  title:string; value:number; sub:string; color:string; icon:string; pct?:number;
-}) {
+function StatCard({ title, value, sub, color, icon, pct }: { title:string; value:number; sub:string; color:string; icon:string; pct?:number }) {
   return (
-    <div style={{
-      background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:13,
-      padding:"16px 18px", position:"relative", overflow:"hidden", transition:"border-color .2s",
-    }}>
+    <div style={{ background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:13, padding:"16px 18px", position:"relative", overflow:"hidden" }}>
       <div style={{ position:"absolute", top:-20, right:-20, width:70, height:70, borderRadius:"50%", opacity:.12, filter:"blur(18px)", background:color }} />
       <div style={{ position:"relative" }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
           <span style={{ fontSize:10, fontWeight:600, letterSpacing:".1em", textTransform:"uppercase", color:"var(--text-muted)" }}>{title}</span>
           <span style={{ color, fontSize:18 }}>{icon}</span>
         </div>
-        <p style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:600, color, marginBottom:4 }}>
-          ₹ <AnimatedNum value={value} />
-        </p>
+        <p style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:600, color, marginBottom:4 }}>₹ <AnimatedNum value={value} /></p>
         <p style={{ fontSize:11, color:"var(--text-muted)" }}>{sub}</p>
         {pct !== undefined && (
           <>
@@ -113,7 +103,6 @@ function StatCard({ title, value, sub, color, icon, pct }: {
   );
 }
 
-// ── Risk Panel ────────────────────────────────────────────────
 function RiskPanel({ level }: { level: string }) {
   const r = getRisk(level);
   return (
@@ -123,9 +112,7 @@ function RiskPanel({ level }: { level: string }) {
           <p style={{ fontSize:10, fontWeight:600, letterSpacing:".1em", textTransform:"uppercase", color:"var(--text-muted)", marginBottom:8 }}>Financial Risk Assessment</p>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <span style={{ fontSize:24, fontWeight:700, color:r.color }}>{level}</span>
-            <span style={{ background:r.bg, color:r.color, border:`1px solid ${r.border}`, padding:"2px 10px", borderRadius:999, fontSize:11, fontWeight:500 }}>
-              {r.icon} {r.label}
-            </span>
+            <span style={{ background:r.bg, color:r.color, border:`1px solid ${r.border}`, padding:"2px 10px", borderRadius:999, fontSize:11, fontWeight:500 }}>{r.icon} {r.label}</span>
           </div>
         </div>
         <div style={{ textAlign:"right" }}>
@@ -141,7 +128,6 @@ function RiskPanel({ level }: { level: string }) {
   );
 }
 
-// ── Category Breakdown ────────────────────────────────────────
 function CategoryBreakdown({ data, total }: { data: Record<string,number>; total:number }) {
   const entries = Object.entries(data).filter(([,v])=>v>0).sort(([,a],[,b])=>b-a).slice(0,8);
   if (!entries.length) return <p style={{ fontSize:12, color:"var(--text-muted)" }}>No category data</p>;
@@ -172,7 +158,6 @@ function CategoryBreakdown({ data, total }: { data: Record<string,number>; total
   );
 }
 
-// ── Spend Split ───────────────────────────────────────────────
 function SpendSplit({ weekend, weekday }: { weekend:number; weekday:number }) {
   const total = weekend + weekday;
   const wdPct = total > 0 ? (weekday/total)*100 : 50;
@@ -199,7 +184,6 @@ function SpendSplit({ weekend, weekday }: { weekend:number; weekday:number }) {
   );
 }
 
-// ── Suggestion ────────────────────────────────────────────────
 function Suggestion({ text, idx }: { text:string; idx:number }) {
   const icons = ["◎","◉","●"];
   const colors = ["#22d3ee","#818cf8","#10b981"];
@@ -211,7 +195,6 @@ function Suggestion({ text, idx }: { text:string; idx:number }) {
   );
 }
 
-// ── Empty State ───────────────────────────────────────────────
 function EmptyState({ month }: { month:string }) {
   return (
     <div style={{ maxWidth:1280, margin:"0 auto", padding:"60px 24px", textAlign:"center" }}>
@@ -225,28 +208,32 @@ function EmptyState({ month }: { month:string }) {
 // ── Main ──────────────────────────────────────────────────────
 export default function Home() {
   const router = useRouter();
+  const checked = useRef(false); // prevents double-run in any React mode
 
-  const [user, setUser]                       = useState<AuthUser | null>(null);
-  const [authChecked, setAuthChecked]         = useState(false);
-  const [selectedMonth, setSelectedMonth]     = useState("");
+  const [user, setUser]                   = useState<AuthUser | null>(null);
+  const [authChecked, setAuthChecked]     = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState("");
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
-  const [summary, setSummary]                 = useState<Summary | null>(null);
-  const [aiInsight, setAiInsight]             = useState<AIInsight | null>(null);
-  const [loading, setLoading]                 = useState(false);  // ← false, not true
-  const [error, setError]                     = useState<string | null>(null);
-  const [noData, setNoData]                   = useState(false);
-  const [loggingOut, setLoggingOut]           = useState(false);
+  const [summary, setSummary]             = useState<Summary | null>(null);
+  const [aiInsight, setAiInsight]         = useState<AIInsight | null>(null);
+  const [loading, setLoading]             = useState(false); // false — don't show skeleton before auth
+  const [error, setError]                 = useState<string | null>(null);
+  const [noData, setNoData]               = useState(false);
+  const [loggingOut, setLoggingOut]       = useState(false);
 
-  // Auth guard — runs once on mount, client-side only
+  // Auth guard — runs ONCE on mount only, never re-runs
   useEffect(() => {
+    if (checked.current) return;
+    checked.current = true;
+
     if (!isLoggedIn()) {
       router.replace("/auth/login");
-      // do NOT set authChecked — keep returning null until redirect completes
+      // do NOT set authChecked — stay blank (null) while redirect completes
       return;
     }
     setUser(getCachedUser());
-    setAuthChecked(true);
-  }, []); // ← empty deps, runs only once on mount
+    setAuthChecked(true); // only reaches here if logged in
+  }, []); // ← EMPTY — never re-runs, no router dependency
 
   const fetchMonths = useCallback(async () => {
     setLoading(true);
@@ -259,7 +246,7 @@ export default function Home() {
       if (data.length > 0) {
         setSelectedMonth(data[0]);
       } else {
-        setLoading(false); // no months — stop loading
+        setLoading(false);
       }
     } catch {
       setError("Cannot connect to backend. Ensure the API is running.");
@@ -302,14 +289,13 @@ export default function Home() {
 
   const onUploadSuccess = () => { fetchMonths(); };
 
-  // ── Block ALL rendering until auth is confirmed ──────────────
-  // This is the ONLY place we gate rendering.
-  // Returns null (blank screen) while waiting — no flash possible.
+  // ── GATE: render nothing until auth confirmed ─────────────────
+  // While authChecked=false: blank screen (null)
+  // router.replace is in-flight — user never sees dashboard
   if (!authChecked) return null;
 
   const savings = summary ? summary.total_income - summary.total_expense : 0;
   const expPct  = summary && summary.total_income > 0 ? (summary.total_expense / summary.total_income)*100 : 0;
-
   const S = {
     card:  { background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:13, padding:"16px 18px" } as React.CSSProperties,
     label: { fontSize:10, fontWeight:600, letterSpacing:".1em", textTransform:"uppercase" as const, color:"var(--text-muted)", marginBottom:12 },
@@ -317,72 +303,30 @@ export default function Home() {
 
   return (
     <div style={{ minHeight:"100vh", fontFamily:"var(--font-sans)" }}>
-
-      {/* HEADER */}
-      <header style={{
-        borderBottom:"1px solid var(--border)", background:"rgba(11,15,26,.9)",
-        backdropFilter:"blur(14px)", position:"sticky", top:0, zIndex:50,
-        padding:"12px 24px", display:"flex", alignItems:"center", justifyContent:"space-between",
-      }}>
+      <header style={{ borderBottom:"1px solid var(--border)", background:"rgba(11,15,26,.9)", backdropFilter:"blur(14px)", position:"sticky", top:0, zIndex:50, padding:"12px 24px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{
-            width:36, height:36, borderRadius:9, flexShrink:0,
-            background:"linear-gradient(135deg,#22d3ee,#818cf8)",
-            display:"flex", alignItems:"center", justifyContent:"center",
-            fontFamily:"var(--font-mono)", fontWeight:700, fontSize:12, color:"#0b0f1a",
-          }}>WL</div>
+          <div style={{ width:36, height:36, borderRadius:9, flexShrink:0, background:"linear-gradient(135deg,#22d3ee,#818cf8)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"var(--font-mono)", fontWeight:700, fontSize:12, color:"#0b0f1a" }}>WL</div>
           <div>
             <p style={{ fontSize:16, fontWeight:700, letterSpacing:"-.02em", color:"var(--text-primary)", margin:0 }}>WealthLens</p>
             <p style={{ fontSize:9, color:"var(--text-muted)", letterSpacing:".08em", margin:0 }}>FINANCE INTELLIGENCE</p>
           </div>
         </div>
-
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           {availableMonths.length > 0 && (
-            <select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} style={{
-              background:"var(--bg-card)", border:"1px solid var(--border-strong)", borderRadius:8,
-              padding:"7px 12px", color:"var(--text-primary)", fontSize:13,
-              fontFamily:"var(--font-sans)", cursor:"pointer", outline:"none",
-            }}>
+            <select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} style={{ background:"var(--bg-card)", border:"1px solid var(--border-strong)", borderRadius:8, padding:"7px 12px", color:"var(--text-primary)", fontSize:13, fontFamily:"var(--font-sans)", cursor:"pointer", outline:"none" }}>
               {availableMonths.map(m=><option key={m} value={m}>{formatMonthLabel(m)}</option>)}
             </select>
           )}
-          <input type="month" onChange={e=>{ if(e.target.value) setSelectedMonth(e.target.value); }}
-            style={{
-              background:"var(--bg-card)", border:"1px solid var(--border-strong)", borderRadius:8,
-              padding:"7px 12px", color:"var(--text-muted)", fontSize:13,
-              fontFamily:"var(--font-sans)", cursor:"pointer", outline:"none",
-            }} title="Jump to any month" />
-
+          <input type="month" onChange={e=>{ if(e.target.value) setSelectedMonth(e.target.value); }} style={{ background:"var(--bg-card)", border:"1px solid var(--border-strong)", borderRadius:8, padding:"7px 12px", color:"var(--text-muted)", fontSize:13, fontFamily:"var(--font-sans)", cursor:"pointer", outline:"none" }} title="Jump to any month" />
           {user && (
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <div style={{
-                display:"flex", alignItems:"center", gap:8,
-                background:"var(--bg-card)", border:"1px solid var(--border-strong)",
-                borderRadius:8, padding:"5px 12px",
-              }}>
-                <div style={{
-                  width:24, height:24, borderRadius:"50%", flexShrink:0,
-                  background:"linear-gradient(135deg,#22d3ee,#818cf8)",
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:10, fontWeight:700, color:"#0b0f1a",
-                }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, background:"var(--bg-card)", border:"1px solid var(--border-strong)", borderRadius:8, padding:"5px 12px" }}>
+                <div style={{ width:24, height:24, borderRadius:"50%", flexShrink:0, background:"linear-gradient(135deg,#22d3ee,#818cf8)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#0b0f1a" }}>
                   {(user.full_name || user.email).charAt(0).toUpperCase()}
                 </div>
-                <span style={{ fontSize:13, color:"var(--text-secondary)", maxWidth:140, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                  {user.full_name || user.email}
-                </span>
+                <span style={{ fontSize:13, color:"var(--text-secondary)", maxWidth:140, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{user.full_name || user.email}</span>
               </div>
-              <button
-                onClick={handleLogout}
-                disabled={loggingOut}
-                style={{
-                  background:"transparent", border:"1px solid var(--border-strong)",
-                  borderRadius:8, padding:"7px 12px", color:"var(--text-muted)",
-                  fontSize:12, fontFamily:"var(--font-sans)", cursor: loggingOut ? "not-allowed" : "pointer",
-                  opacity: loggingOut ? 0.6 : 1, transition:"color .2s, border-color .2s",
-                }}
-              >
+              <button onClick={handleLogout} disabled={loggingOut} style={{ background:"transparent", border:"1px solid var(--border-strong)", borderRadius:8, padding:"7px 12px", color:"var(--text-muted)", fontSize:12, fontFamily:"var(--font-sans)", cursor: loggingOut ? "not-allowed" : "pointer", opacity: loggingOut ? 0.6 : 1 }}>
                 {loggingOut ? "…" : "Sign out"}
               </button>
             </div>
@@ -390,76 +334,54 @@ export default function Home() {
         </div>
       </header>
 
-      {/* UPLOAD */}
       <div style={{ maxWidth:1280, margin:"0 auto", padding:"16px 24px 0" }}>
         <UploadCSV onSuccess={onUploadSuccess} />
       </div>
 
-      {/* ERROR */}
       {!loading && error && (
         <div style={{ maxWidth:1280, margin:"0 auto", padding:"60px 24px", textAlign:"center" }}>
           <p style={{ fontSize:40, marginBottom:14, color:"var(--text-muted)" }}>⚠</p>
           <p style={{ fontSize:15, fontWeight:500, color:"var(--text-primary)", marginBottom:16 }}>{error}</p>
-          <button onClick={fetchMonths} style={{
-            padding:"9px 22px", background:"var(--accent-dim)", border:"1px solid var(--accent)",
-            borderRadius:8, color:"var(--accent)", cursor:"pointer", fontSize:13, fontFamily:"var(--font-sans)",
-          }}>Retry</button>
+          <button onClick={fetchMonths} style={{ padding:"9px 22px", background:"var(--accent-dim)", border:"1px solid var(--accent)", borderRadius:8, color:"var(--accent)", cursor:"pointer", fontSize:13, fontFamily:"var(--font-sans)" }}>Retry</button>
         </div>
       )}
 
-      {/* LOADING */}
       {loading && <Skeleton />}
 
-      {/* NO DATA */}
       {!loading && !error && noData && <EmptyState month={selectedMonth} />}
 
-      {/* DASHBOARD */}
       {!loading && !error && !noData && summary && aiInsight && (
         <main style={{ maxWidth:1280, margin:"0 auto", padding:"16px 24px 32px" }}>
-
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
-            <span style={{
-              display:"inline-flex", alignItems:"center", padding:"2px 10px", borderRadius:999,
-              fontSize:11, fontWeight:500, background:"rgba(34,211,238,.08)",
-              color:"#22d3ee", border:"1px solid rgba(34,211,238,.2)",
-            }}>{formatMonthLabel(selectedMonth)}</span>
+            <span style={{ display:"inline-flex", alignItems:"center", padding:"2px 10px", borderRadius:999, fontSize:11, fontWeight:500, background:"rgba(34,211,238,.08)", color:"#22d3ee", border:"1px solid rgba(34,211,238,.2)" }}>{formatMonthLabel(selectedMonth)}</span>
             <span style={{ fontSize:12, color:"var(--text-muted)" }}>— Monthly Financial Report</span>
           </div>
-
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:14 }}>
             <StatCard title="Total Income"  value={summary.total_income}  sub="Credited this month" color="#10b981" icon="↑" />
             <StatCard title="Total Expense" value={summary.total_expense} sub="Debited this month"  color="#f43f5e" icon="↓" pct={expPct} />
             <StatCard title="Net Savings"   value={Math.abs(savings)}     sub={savings>=0?"Surplus":"Deficit"} color={savings>=0?"#10b981":"#f43f5e"} icon={savings>=0?"◈":"◉"} />
             <StatCard title="Weekend Spend" value={summary.weekend_spend} sub="Sat & Sun spending"  color="#f59e0b" icon="◇" />
           </div>
-
-          <div style={{ marginBottom:14 }}>
-            <RiskPanel level={aiInsight.risk_level} />
-          </div>
-
+          <div style={{ marginBottom:14 }}><RiskPanel level={aiInsight.risk_level} /></div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
             <div style={S.card}>
               <p style={S.label}>Category Breakdown</p>
               <CategoryBreakdown data={summary.category_breakdown || {}} total={summary.total_expense} />
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-              <div style={S.card}>
-                <SpendSplit weekend={summary.weekend_spend} weekday={summary.weekday_spend} />
-              </div>
+              <div style={S.card}><SpendSplit weekend={summary.weekend_spend} weekday={summary.weekday_spend} /></div>
               <div style={{ ...S.card, flex:1 }}>
                 <p style={S.label}>AI Financial Insight</p>
                 <p style={{ fontSize:13, color:"var(--text-secondary)", lineHeight:1.65, margin:0 }}>{aiInsight.summary}</p>
               </div>
             </div>
           </div>
-
           <div>
             <p style={{ ...S.label, marginBottom:10 }}>Actionable Suggestions</p>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>
               {aiInsight.actionable_suggestions.map((s,i)=><Suggestion key={i} text={s} idx={i} />)}
             </div>
           </div>
-
           <p style={{ textAlign:"center", fontSize:11, color:"var(--text-muted)", marginTop:24 }}>
             WealthLens · AI-powered by OpenRouter · {formatMonthLabel(selectedMonth)}
           </p>
