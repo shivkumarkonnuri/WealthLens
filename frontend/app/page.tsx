@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import UploadCSV from "@/components/UploadCSV";
 import { apiFetch, logout, getCachedUser, isLoggedIn, type AuthUser } from "@/lib/auth";
 
-
 interface Summary {
   total_income: number;
   total_expense: number;
@@ -233,37 +232,44 @@ export default function Home() {
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [summary, setSummary]                 = useState<Summary | null>(null);
   const [aiInsight, setAiInsight]             = useState<AIInsight | null>(null);
-  const [loading, setLoading]                 = useState(true);
+  const [loading, setLoading]                 = useState(false);  // ← false, not true
   const [error, setError]                     = useState<string | null>(null);
   const [noData, setNoData]                   = useState(false);
   const [loggingOut, setLoggingOut]           = useState(false);
 
-  // Auth guard — redirect to login if no token
+  // Auth guard — runs once on mount, client-side only
   useEffect(() => {
     if (!isLoggedIn()) {
       router.replace("/auth/login");
+      // do NOT set authChecked — keep returning null until redirect completes
       return;
     }
     setUser(getCachedUser());
     setAuthChecked(true);
-  }, [router]);
+  }, []); // ← empty deps, runs only once on mount
 
   const fetchMonths = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await apiFetch(`/api/proxy/transactions/available-months`);
       if (res.status === 401) { router.replace("/auth/login"); return; }
       if (!res.ok) throw new Error("Failed");
       const data: string[] = await res.json();
       setAvailableMonths(data);
-      if (data.length > 0) setSelectedMonth(data[0]);
-      else setLoading(false);
+      if (data.length > 0) {
+        setSelectedMonth(data[0]);
+      } else {
+        setLoading(false); // no months — stop loading
+      }
     } catch {
-      setError("Cannot connect to backend. Ensure the API is running on port 8000.");
+      setError("Cannot connect to backend. Ensure the API is running.");
       setLoading(false);
     }
   }, [router]);
 
-  useEffect(() => { if (authChecked) fetchMonths(); }, [authChecked, fetchMonths]);
+  useEffect(() => {
+    if (authChecked) fetchMonths();
+  }, [authChecked, fetchMonths]);
 
   useEffect(() => {
     if (!selectedMonth) return;
@@ -296,7 +302,9 @@ export default function Home() {
 
   const onUploadSuccess = () => { fetchMonths(); };
 
-  // Don't render anything until auth check is complete — prevents dashboard flash
+  // ── Block ALL rendering until auth is confirmed ──────────────
+  // This is the ONLY place we gate rendering.
+  // Returns null (blank screen) while waiting — no flash possible.
   if (!authChecked) return null;
 
   const savings = summary ? summary.total_income - summary.total_expense : 0;
@@ -346,7 +354,6 @@ export default function Home() {
               fontFamily:"var(--font-sans)", cursor:"pointer", outline:"none",
             }} title="Jump to any month" />
 
-          {/* User chip */}
           {user && (
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <div style={{
