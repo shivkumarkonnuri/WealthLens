@@ -7,16 +7,24 @@ import { register, login, isLoggedIn } from "@/lib/auth";
 export default function RegisterPage() {
   const router = useRouter();
 
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm]   = useState("");
-  const [error, setError]       = useState<string | null>(null);
-  const [loading, setLoading]   = useState(false);
+  const [fullName, setFullName]       = useState("");
+  const [email, setEmail]             = useState("");
+  const [password, setPassword]       = useState("");
+  const [confirm, setConfirm]         = useState("");
+  const [error, setError]             = useState<string | null>(null);
+  const [loading, setLoading]         = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn()) router.replace("/");
+    if (isLoggedIn()) {
+      router.replace("/");
+    } else {
+      setAuthChecked(true); // only show register page once confirmed NOT logged in
+    }
   }, [router]);
+
+  // Don't render until auth check complete — prevents flash
+  if (!authChecked) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,12 +48,10 @@ export default function RegisterPage() {
       return;
     }
 
-    // Auto-login after successful registration
     const loginResult = await login(email, password);
     if (loginResult.ok) {
       router.replace("/");
     } else {
-      // Registration succeeded but auto-login failed — just go to login page
       router.replace("/auth/login");
     }
   }
@@ -97,6 +103,7 @@ export default function RegisterPage() {
               onChange={e => setPassword(e.target.value)}
               style={styles.input}
               placeholder="Min. 8 characters"
+              maxLength={72}
             />
           </label>
 
@@ -110,10 +117,10 @@ export default function RegisterPage() {
               onChange={e => setConfirm(e.target.value)}
               style={styles.input}
               placeholder="Repeat your password"
+              maxLength={72}
             />
           </label>
 
-          {/* Password strength hints */}
           {password.length > 0 && (
             <div style={styles.strengthRow}>
               <StrengthBar password={password} />
@@ -146,14 +153,13 @@ export default function RegisterPage() {
   );
 }
 
-// ── Simple password strength bar ──────────────────────────────
 function StrengthBar({ password }: { password: string }) {
   let score = 0;
-  if (password.length >= 8)                      score++;
-  if (password.length >= 12)                     score++;
-  if (/[A-Z]/.test(password))                   score++;
-  if (/[0-9]/.test(password))                   score++;
-  if (/[^A-Za-z0-9]/.test(password))            score++;
+  if (password.length >= 8)           score++;
+  if (password.length >= 12)          score++;
+  if (/[A-Z]/.test(password))         score++;
+  if (/[0-9]/.test(password))         score++;
+  if (/[^A-Za-z0-9]/.test(password))  score++;
 
   const labels = ["", "Weak", "Fair", "Good", "Strong", "Very strong"];
   const colors = ["", "#f43f5e", "#f59e0b", "#f59e0b", "#10b981", "#10b981"];
@@ -162,16 +168,11 @@ function StrengthBar({ password }: { password: string }) {
     <div>
       <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
         {[1, 2, 3, 4, 5].map(i => (
-          <div
-            key={i}
-            style={{
-              flex: 1,
-              height: 3,
-              borderRadius: 999,
-              background: i <= score ? colors[score] : "var(--border-strong)",
-              transition: "background .3s",
-            }}
-          />
+          <div key={i} style={{
+            flex: 1, height: 3, borderRadius: 999,
+            background: i <= score ? colors[score] : "var(--border-strong)",
+            transition: "background .3s",
+          }} />
         ))}
       </div>
       <p style={{ fontSize: 11, color: colors[score] || "var(--text-muted)", margin: 0 }}>
@@ -181,7 +182,6 @@ function StrengthBar({ password }: { password: string }) {
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
@@ -192,22 +192,9 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "24px 16px",
     background: "var(--bg-base)",
   },
-  brand: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 32,
-  },
-  brandIcon: {
-    fontSize: 26,
-    color: "var(--accent)",
-  },
-  brandName: {
-    fontSize: 22,
-    fontWeight: 600,
-    color: "var(--text-primary)",
-    letterSpacing: "-0.02em",
-  },
+  brand: { display: "flex", alignItems: "center", gap: 10, marginBottom: 32 },
+  brandIcon: { fontSize: 26, color: "var(--accent)" },
+  brandName: { fontSize: 22, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" },
   card: {
     width: "100%",
     maxWidth: 420,
@@ -216,22 +203,9 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     padding: "36px 32px",
   },
-  heading: {
-    fontSize: 22,
-    fontWeight: 600,
-    color: "var(--text-primary)",
-    margin: "0 0 6px",
-  },
-  sub: {
-    fontSize: 13,
-    color: "var(--text-muted)",
-    margin: "0 0 28px",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-  },
+  heading: { fontSize: 22, fontWeight: 600, color: "var(--text-primary)", margin: "0 0 6px" },
+  sub: { fontSize: 13, color: "var(--text-muted)", margin: "0 0 28px" },
+  form: { display: "flex", flexDirection: "column", gap: 16 },
   label: {
     display: "flex",
     flexDirection: "column",
@@ -253,9 +227,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "var(--font-sans)",
     transition: "border-color .2s",
   },
-  strengthRow: {
-    marginTop: -4,
-  },
+  strengthRow: { marginTop: -4 },
   errorBox: {
     background: "var(--red-dim)",
     border: "1px solid rgba(244,63,94,0.3)",
@@ -279,15 +251,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "var(--font-sans)",
     transition: "background .2s",
   },
-  footer: {
-    marginTop: 24,
-    textAlign: "center",
-    fontSize: 13,
-    color: "var(--text-muted)",
-  },
-  link: {
-    color: "var(--accent)",
-    textDecoration: "none",
-    fontWeight: 500,
-  },
+  footer: { marginTop: 24, textAlign: "center", fontSize: 13, color: "var(--text-muted)" },
+  link: { color: "var(--accent)", textDecoration: "none", fontWeight: 500 },
 };
